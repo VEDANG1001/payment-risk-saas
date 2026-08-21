@@ -102,16 +102,31 @@ def get_customer_payment_behavior(customer_id: int) -> dict:
         db.close()
 
 def calculate_customer_metrics(invoices: list[dict]) -> dict:
+
     # Count total invoices
     total_invoices = len(invoices)
 
-    # Count paid invoices
+    # Fully paid invoices
     paid_invoices = sum(
         1 for invoice in invoices
-        if invoice["payment_status"] != "UNPAID"
+        if invoice["outstanding_amount"] == 0
+        and invoice["total_paid"] > 0
     )
 
-    # Count on-time paymentsss
+    # Unpaid invoices
+    unpaid_invoices = sum(
+        1 for invoice in invoices
+        if invoice["total_paid"] == 0
+    )
+
+    # Partially paid invoices
+    partially_paid_invoices = sum(
+        1 for invoice in invoices
+        if invoice["total_paid"] > 0
+        and invoice["outstanding_amount"] > 0
+    )
+
+    # Count on-time payments
     on_time_payments = sum(
         1 for invoice in invoices
         if invoice["payment_status"] == "ON_TIME"
@@ -123,42 +138,60 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
         if invoice["payment_status"] == "LATE"
     )
 
-    # Calculate total invoice amount
+    # Total invoice amount
     total_invoiced = sum(
         invoice["invoice_amount"]
         for invoice in invoices
     )
 
-    # Calculate total paid amount
+    # Total paid amount
     total_paid = sum(
         invoice["total_paid"]
         for invoice in invoices
     )
 
-    # Calculate total outstanding amount
+    # Total outstanding amount
     total_outstanding = sum(
         invoice["outstanding_amount"]
         for invoice in invoices
     )
 
-    # Get days late values only from paid invoices
+    # Days late from invoices that received payment
     late_days = [
         invoice["days_late"]
         for invoice in invoices
-        if invoice["payment_status"] != "UNPAID"
+        if invoice["total_paid"] > 0
     ]
 
-    # Calculate average days late
+    # Average days late
     average_days_late = (
         sum(late_days) / len(late_days)
         if late_days
         else 0
     )
 
-    # Calculate maximum days late
-    maximum_days_late = max(late_days) if late_days else 0
+    # Maximum days late
+    maximum_days_late = (
+        max(late_days)
+        if late_days
+        else 0
+    )
 
-    # Calculate payment completion percentage
+    # Unpaid invoice ratio
+    unpaid_invoice_ratio = (
+        (unpaid_invoices / total_invoices) * 100
+        if total_invoices
+        else 0
+    )
+
+    # Partial payment ratio
+    partial_payment_ratio = (
+        (partially_paid_invoices / total_invoices) * 100
+        if total_invoices
+        else 0
+    )
+
+    # Payment completion rate
     payment_completion_rate = (
         (paid_invoices / total_invoices) * 100
         if total_invoices
@@ -169,6 +202,8 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
     return {
         "total_invoices": total_invoices,
         "paid_invoices": paid_invoices,
+        "unpaid_invoices": unpaid_invoices,
+        "partially_paid_invoices": partially_paid_invoices,
         "on_time_payments": on_time_payments,
         "late_payments": late_payments,
         "total_invoiced": total_invoiced,
@@ -176,5 +211,8 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
         "total_outstanding": total_outstanding,
         "average_days_late": average_days_late,
         "maximum_days_late": maximum_days_late,
+        "unpaid_invoice_ratio": unpaid_invoice_ratio,
+        "partial_payment_ratio": partial_payment_ratio,
         "payment_completion_rate": payment_completion_rate,
     }
+   
