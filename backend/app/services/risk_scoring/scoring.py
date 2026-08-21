@@ -89,6 +89,46 @@ def summarize_risk_factors(components: dict) -> dict:
     return summary
 
 
+# Generate positive factors
+def generate_positive_factors(metrics: dict) -> list[str]:
+
+    # Store positive factors
+    positive_factors = []
+
+    # Check outstanding amount
+    if metrics["total_outstanding"] == 0:
+        positive_factors.append(
+            "No outstanding amount"
+        )
+
+    # Check unpaid invoices
+    if metrics["unpaid_invoices"] == 0:
+        positive_factors.append(
+            "No unpaid invoices"
+        )
+
+    # Check partial payments
+    if metrics["partially_paid_invoices"] == 0:
+        positive_factors.append(
+            "No partial payments"
+        )
+
+    # Check payment completion
+    if metrics["payment_completion_rate"] == 100:
+        positive_factors.append(
+            "100% payment completion"
+        )
+
+    # Check on-time payments
+    if metrics["late_payments"] == 0:
+        positive_factors.append(
+            "All payments were on time"
+        )
+
+    # Return positive factors
+    return positive_factors
+
+
 
 def calculate_risk_score(metrics: dict) -> dict:
 
@@ -148,6 +188,9 @@ def calculate_risk_score(metrics: dict) -> dict:
     # Generate explanations for the risk
     risk_reasons = generate_risk_reasons(metrics)
 
+    # Generate positive factors
+    positive_factors = generate_positive_factors(metrics)
+
 
     # Determine risk level
     if score < 30:
@@ -196,6 +239,8 @@ def calculate_risk_score(metrics: dict) -> dict:
     return {
         "risk_score": score,
         "risk_level": risk_level,
+        "risk_reasons": risk_reasons,
+        "positive_factors": positive_factors,
         "risk_reasons": risk_reasons,
         "components": components,
         "risk_factor_summary": risk_factor_summary,
