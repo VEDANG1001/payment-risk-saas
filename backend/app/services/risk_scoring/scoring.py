@@ -1,3 +1,4 @@
+from .customer_risk_profile import build_risk_profile
 from .rules import (
     late_payment_risk,
     average_days_late_risk,
@@ -8,6 +9,7 @@ from .rules import (
     partial_payment_risk,   # NEW
     get_risk_severity,      # NEW
 )
+
 # Generate reasons for the customer's risk
 def generate_risk_reasons(metrics: dict) -> list[str]:
 
@@ -149,10 +151,16 @@ def calculate_risk_score(metrics: dict) -> dict:
         metrics["total_outstanding"],
         metrics["total_invoiced"],
     )
-
-    completion_risk = payment_completion_risk(
-        metrics["payment_completion_rate"]
-    )
+    # i am replacing the payment completion risk with this new logic to calculate the risk score based on the new metrics
+    # Calculate payment completion risk
+    # No invoices = no payment history to evaluate
+    if metrics["total_invoices"] == 0:
+        completion_risk = 0.0
+    else:
+        completion_risk = payment_completion_risk(
+            metrics["payment_completion_rate"]
+        )
+    
     # Calculate unpaid invoice risk
     unpaid_risk = unpaid_invoice_risk(
         metrics["unpaid_invoice_ratio"]
@@ -185,6 +193,7 @@ def calculate_risk_score(metrics: dict) -> dict:
     )
 
     score = round(score, 2)
+
     # Generate explanations for the risk
     risk_reasons = generate_risk_reasons(metrics)
 
@@ -235,13 +244,12 @@ def calculate_risk_score(metrics: dict) -> dict:
     # Group risk factors by severity
     risk_factor_summary = summarize_risk_factors(components)
 
-    # Return complete risk result
-    return {
-        "risk_score": score,
-        "risk_level": risk_level,
-        "risk_reasons": risk_reasons,
-        "positive_factors": positive_factors,
-        "risk_reasons": risk_reasons,
-        "components": components,
-        "risk_factor_summary": risk_factor_summary,
-    }
+    # Build complete customer risk profile
+    return build_risk_profile(
+        score=score,
+        level=risk_level,
+        reasons=risk_reasons,
+        positive_factors=positive_factors,
+        components=components,
+        summary=risk_factor_summary,
+    )
