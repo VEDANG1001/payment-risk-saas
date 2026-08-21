@@ -218,4 +218,18 @@ def partial_payment_risk(
     else:
         return 100.0
 
+# Convert risk score into severity
+def get_risk_severity(risk_score: float) -> str:
+
+    # Low risk
+    if risk_score < 30:
+        return "LOW"
+
+    # Medium risk
+    elif risk_score < 60:
+        return "MEDIUM"
+
+    # High risk
+    else:
+        return "HIGH"
     

@@ -5,7 +5,8 @@ from .rules import (
     outstanding_ratio_risk,
     payment_completion_risk,
     unpaid_invoice_risk,      # NEW
-    partial_payment_risk,     # NEW
+    partial_payment_risk,   # NEW
+    get_risk_severity,      # NEW
 )
 # Generate reasons for the customer's risk
 def generate_risk_reasons(metrics: dict) -> list[str]:
@@ -65,6 +66,30 @@ def generate_risk_reasons(metrics: dict) -> list[str]:
     return reasons
 
 
+# Get summary of risk factors
+def summarize_risk_factors(components: dict) -> dict:
+
+    # Store factors by severity
+    summary = {
+        "HIGH": [],
+        "MEDIUM": [],
+        "LOW": [],
+    }
+
+    # Check every risk factor
+    for name, data in components.items():
+
+        # Get its severity
+        severity = data["severity"]
+
+        # Add factor to its severity group
+        summary[severity].append(name)
+
+    # Return grouped factors
+    return summary
+
+
+
 def calculate_risk_score(metrics: dict) -> dict:
 
     late_risk = late_payment_risk(
@@ -97,6 +122,17 @@ def calculate_risk_score(metrics: dict) -> dict:
         metrics["partial_payment_ratio"]
     )
 
+    # Get severity for each risk factor
+    late_severity = get_risk_severity(late_risk)
+    average_late_severity = get_risk_severity(average_late_risk)
+    maximum_late_severity = get_risk_severity(maximum_late_risk)
+    outstanding_severity = get_risk_severity(outstanding_risk)
+    completion_severity = get_risk_severity(completion_risk)
+    unpaid_severity = get_risk_severity(unpaid_risk)
+    partial_severity = get_risk_severity(partial_risk)
+
+    
+
     # Apply weights
     score = (
         late_risk * 0.20
@@ -121,17 +157,46 @@ def calculate_risk_score(metrics: dict) -> dict:
     else:
         risk_level = "HIGH"
 
+       # Store all risk components
+    components = {
+        "late_payment": {
+            "score": late_risk,
+            "severity": late_severity,
+        },
+        "average_days_late": {
+            "score": average_late_risk,
+            "severity": average_late_severity,
+        },
+        "maximum_days_late": {
+            "score": maximum_late_risk,
+            "severity": maximum_late_severity,
+        },
+        "outstanding_ratio": {
+            "score": outstanding_risk,
+            "severity": outstanding_severity,
+        },
+        "payment_completion": {
+            "score": completion_risk,
+            "severity": completion_severity,
+        },
+        "unpaid_invoices": {
+            "score": unpaid_risk,
+            "severity": unpaid_severity,
+        },
+        "partial_payments": {
+            "score": partial_risk,
+            "severity": partial_severity,
+        },
+    }
+
+    # Group risk factors by severity
+    risk_factor_summary = summarize_risk_factors(components)
+
+    # Return complete risk result
     return {
         "risk_score": score,
         "risk_level": risk_level,
         "risk_reasons": risk_reasons,
-        "components": {
-            "late_payment_risk": late_risk,
-            "average_days_late_risk": average_late_risk,
-            "maximum_days_late_risk": maximum_late_risk,
-            "outstanding_ratio_risk": outstanding_risk,
-            "payment_completion_risk": completion_risk,
-            "unpaid_invoice_risk": unpaid_risk,
-            "partial_payment_risk": partial_risk,
-        },
+        "components": components,
+        "risk_factor_summary": risk_factor_summary,
     }
