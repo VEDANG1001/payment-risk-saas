@@ -40,7 +40,7 @@ try:
     user = User(
         tenant_id=tenant.id,
         name="Demo Admin",
-        email="admin@demo.com"
+        email="admin2@demo.com"
     )
 
     db.add(user)
