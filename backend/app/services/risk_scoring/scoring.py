@@ -134,6 +134,22 @@ def generate_positive_factors(metrics: dict) -> list[str]:
 
 def calculate_risk_score(metrics: dict) -> dict:
 
+        # No invoice history means there is not enough data
+    # to evaluate the customer's payment risk.
+    if metrics["total_invoices"] == 0:
+        return build_risk_profile(
+            score=0.0,
+            level="NO_HISTORY",
+            reasons=["No invoice history available"],
+            positive_factors=[],
+            components={},
+            summary={
+                "HIGH": [],
+                "MEDIUM": [],
+                "LOW": [],
+            },
+        )
+
     late_risk = late_payment_risk(
         metrics["late_payments"],
         metrics["total_invoices"],
