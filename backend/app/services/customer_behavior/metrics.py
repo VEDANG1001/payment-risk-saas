@@ -11,6 +11,7 @@ from backend.app.models.payment import Payment
 # Payment behavior calculations
 from backend.app.services.payment_behavior.calculations import (
     calculate_days_late,
+    calculate_unpaid_days_late,
     calculate_outstanding_amount,
     get_payment_status,
 )
@@ -76,10 +77,17 @@ def get_customer_payment_behavior(customer_id: int) -> dict:
                 )
 
             else:
-
-                # No payment has been made
-                days_late = 0
-                status = "UNPAID"
+            
+              # No payment has been made
+              days_late = calculate_unpaid_days_late(
+                  invoice.due_date
+              )
+            
+              # Check whether the unpaid invoice is overdue
+              if days_late > 0:
+                  status = "OVERDUE"
+              else:
+                  status = "UNPAID"
 
             # Store invoice behavior
             results.append({
@@ -119,6 +127,12 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
         if invoice["total_paid"] == 0
     )
 
+          # Overdue unpaid invoices
+    overdue_invoices = sum(
+        1 for invoice in invoices
+        if invoice["payment_status"] == "OVERDUE"
+    )
+     
     # Partially paid invoices
     partially_paid_invoices = sum(
         1 for invoice in invoices
@@ -133,9 +147,10 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
     )
 
     # Count late payments
+     # Count both paid-late and currently overdue invoices
     late_payments = sum(
         1 for invoice in invoices
-        if invoice["payment_status"] == "LATE"
+        if invoice["payment_status"] in ("LATE", "OVERDUE")
     )
 
     # Total invoice amount
@@ -157,12 +172,12 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
     )
 
     # Days late from invoices that received payment
+   # Include both paid-late and currently overdue invoices
     late_days = [
         invoice["days_late"]
         for invoice in invoices
-        if invoice["total_paid"] > 0
+        if invoice["payment_status"] in ("LATE", "OVERDUE")
     ]
-
     # Average days late
     average_days_late = (
         sum(late_days) / len(late_days)
@@ -214,5 +229,6 @@ def calculate_customer_metrics(invoices: list[dict]) -> dict:
         "unpaid_invoice_ratio": unpaid_invoice_ratio,
         "partial_payment_ratio": partial_payment_ratio,
         "payment_completion_rate": payment_completion_rate,
+        "overdue_invoices": overdue_invoices,
     }
    

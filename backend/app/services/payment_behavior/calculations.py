@@ -41,3 +41,18 @@ def get_payment_status(
 
     # Payment made after due date
     return "LATE"
+
+# Calculate how many days an unpaid invoice is overdue
+def calculate_unpaid_days_late(
+    due_date: date
+) -> int:
+
+    # Get today's date
+    today = date.today()
+
+    # If the invoice is not overdue yet
+    if today <= due_date:
+        return 0
+
+    # Calculate how many days the invoice is overdue
+    return (today - due_date).days
